@@ -1,0 +1,520 @@
+.gallery-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Header de la galería */
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem 0.5rem;
+}
+
+.gallery-header h2 {
+  margin: 0;
+}
+
+.add-button {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  background: #22c55e;
+  color: #022c22;
+  cursor: pointer;
+}
+
+/* Contenedor principal de la galería */
+.gallery-wrapper {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.gallery-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* Tarjetas de fotos */
+.photo-card {
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+/* Tamaños según atributo size (S/M/L) */
+.photo-card.size-S {
+  grid-row: span 1;
+  grid-column: span 1;
+  height: 160px;
+}
+
+.photo-card.size-M {
+  grid-row: span 2;
+  grid-column: span 1;
+  height: 260px;
+}
+
+.photo-card.size-L {
+  grid-row: span 2;
+  grid-column: span 2;
+  height: 260px;
+}
+
+/* Flip card */
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.photo-card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* Frente: foto */
+.card-front img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-title {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: #fff;
+}
+
+/* Reverso: detalles */
+.card-back {
+  background: #1f2937;
+  color: #f9fafb;
+  transform: rotateY(180deg);
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-back h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.card-back p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+}
+
+.badge {
+  align-self: flex-start;
+  margin-top: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.empty-msg {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+/* ===== Formulario (dentro del modal) ===== */
+
+.photo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.photo-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+.photo-form input,
+.photo-form select,
+.photo-form textarea {
+  margin-top: 0.2rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.descripcion-label textarea {
+  resize: vertical;
+}
+
+.checkbox-label {
+  align-items: center;
+  flex-direction: row;
+  gap: 0.4rem;
+  margin-top: 1.1rem;
+}
+
+.photo-form button {
+  align-self: flex-end;
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  background: #22c55e;
+  color: #022c22;
+  cursor: pointer;
+}
+
+.photo-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.form-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #f97316;
+}
+
+/* ===== Modal ===== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.modal-content {
+  background: #020617;
+  border-radius: 16px;
+  padding: 1rem 1.2rem 1.2rem;
+  width: min(600px, 95%);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.close-button {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+/* === Sección de álbumes === */
+
+.albums-bar {
+  padding: 0 1.5rem 0.5rem;
+}
+
+.albums-empty {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.albums-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.album-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  background: #020617;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.album-icon {
+  font-size: 1.4rem;
+}
+
+.album-info h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.album-info p {
+  margin: 0.1rem 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.album-count {
+  font-size: 0.75rem;
+  color: #a3e635;
+}
+
+.albums-bar {
+  padding: 0 1.5rem 0.5rem;
+}
+
+.albums-filter-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 0.3rem;
+}
+
+.albums-empty {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.albums-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.album-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  background: #020617;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  min-width: 220px;
+  max-width: 320px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.album-card.small-card {
+  min-width: 190px;
+}
+
+.album-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  border-color: #1d4ed8;
+}
+
+.album-card.active {
+  border-color: #22c55e;
+  background: #022c22;
+}
+
+.album-icon {
+  font-size: 1.4rem;
+}
+
+.album-info h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.album-info p {
+  margin: 0.1rem 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.album-count {
+  font-size: 0.75rem;
+  color: #a3e635;
+}
+
+
+/* Botón de menú en la tarjeta trasera */
+.card-back {
+  position: relative;
+}
+
+.card-menu-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.7);
+  color: #e5e7eb;
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.card-menu-button:hover {
+  background: rgba(31, 41, 55, 0.9);
+}
+
+/* Menú contextual */
+.card-menu {
+  position: absolute;
+  top: 36px;
+  right: 6px;
+  background: #020617;
+  border-radius: 10px;
+  padding: 0.3rem 0;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+  z-index: 10;
+  min-width: 130px;
+}
+
+.card-menu button {
+  width: 100%;
+  padding: 0.3rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  text-align: left;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.card-menu button:hover {
+  background: #111827;
+}
+
+/* Botón secundario (cancelar en el formulario de edición) */
+.secondary-button {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.secondary-button:hover {
+  background: #111827;
+}
+
+
+/* Texto de error en formularios de modal */
+.modal-error {
+  color: #f97316; /* naranja suave */
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Formulario dentro del modal */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Grupo de campo */
+.modal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Etiquetas */
+.modal-form .form-label {
+  font-size: 0.9rem;
+}
+
+/* Inputs coherentes con el modal de álbum */
+.modal-form .form-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background-color: #020617;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+}
+
+.modal-form .form-input:focus {
+  outline: none;
+  border-color: #22c55e; /* como el botón verde */
+}
+
+/* Botones de acciones del modal (igual que en álbum) */
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background-color: #22c55e;
+  color: #020617;
+  font-weight: 600;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background-color: transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+}
