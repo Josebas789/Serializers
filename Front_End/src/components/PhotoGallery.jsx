@@ -3,6 +3,7 @@ import { api } from '../api'
 import PhotoForm from './PhotoForm'
 import AlbumForm from './AlbumForm'
 import PhotoEditForm from './PhotoEditForm'
+import PhotoDeleteForm from './PhotoDeleteForm'
 import './PhotoGallery.css'
 import PhotographerForm from './PhotographerForm'
 
@@ -14,7 +15,9 @@ export default function PhotoGallery() {
   const [showAlbumModal, setShowAlbumModal] = useState(false)
   const [showPhotographerModal, setShowPhotographerModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [photoToEdit, setPhotoToEdit] = useState(null)
+  const [photoToDelete, setPhotoToDelete] =useState(null)
   const [selectedAlbumId, setSelectedAlbumId] = useState(null)
   const [menuPhotoId, setMenuPhotoId] = useState(null)
   const [draggedPhotoId, setDraggedPhotoId] = useState(null)
@@ -67,22 +70,20 @@ export default function PhotoGallery() {
 
   const toggleMenu = (photoId, e) => {
     e.stopPropagation()
+    setPhotoToDelete(photoId)
     setMenuPhotoId(prev => (prev === photoId ? null : photoId))
   }
 
   const handleDeletePhoto = async (photoId, e) => {
     e.stopPropagation()
-    const ok = window.confirm('¿Seguro que quieres eliminar esta foto?')
-    if (!ok) return
+    setPhotoToDelete(photoId)
+    setShowConfirmDelete(true);
+  }
 
-    try {
-      await api.delete(`photos/${photoId}/`)
-      setPhotos(prev => prev.filter(p => p.id !== photoId))
-      setMenuPhotoId(null)
-    } catch (err) {
-      console.error('Error eliminando foto', err.response || err)
-      alert('No se pudo eliminar la foto.')
-    }
+  const handlePhotoDeleted = (deletedPhotoId) => {
+    setPhotos(prev => prev.filter(p=> p.id !== deletedPhotoId))
+    setPhotoToDelete(null)
+    setShowConfirmDelete(false)
   }
 
   const handleEditPhoto = (photo, e) => {
@@ -333,6 +334,33 @@ export default function PhotoGallery() {
                 photo={photoToEdit}
                 onPhotoUpdated={handlePhotoUpdated}
                 onClose={() => setShowEditModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmDelete && photoToDelete && (
+        <div className="modal-backdrop" onClick={() => setShowConfirmDelete(false)}>
+          <div
+            className="modal-content"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>¿Seguro que desea eliminar ésta foto?</h3>
+              <button
+                className="close-button"
+                type="button"
+                onClick={() => setShowConfirmDelete(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <PhotoDeleteForm
+                photo = {photoToDelete}
+                onClose={() => setShowConfirmDelete(false)}
+                onPhotoDeleted={handlePhotoDeleted}
               />
             </div>
           </div>
