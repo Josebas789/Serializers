@@ -10,9 +10,10 @@ export default function Login({ onLogin }) {
     e.preventDefault()
     try {
       const res = await api.post('token/', { username, password })
-      const { access } = res.data
+      const { access, refresh } = res.data
       setAuthToken(access)
-      localStorage.setItem('token', access)
+      localStorage.setItem('token', access);
+      localStorage.setItem('refreshToken', refresh);
       onLogin(access)
       setError('')
     } catch (err) {
