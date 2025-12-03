@@ -484,10 +484,10 @@
 
 .modal-form .form-input:focus {
   outline: none;
-  border-color: #22c55e; /* como el botón verde */
+  border-color: #22c55e; 
 }
 
-/* Botones de acciones del modal (igual que en álbum) */
+
 .modal-actions {
   margin-top: 1rem;
   display: flex;
@@ -517,4 +517,110 @@
   background-color: transparent;
   color: #e5e7eb;
   cursor: pointer;
+}
+
+/* ========================================= */
+/* === NUEVO: Menú ⋮ de los ÁLBUMES ======== */
+/* ========================================= */
+
+.album-card {
+  position: relative; 
+}
+
+.album-menu-button {
+  position: absolute;
+  top: 25%;
+  right: 16px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.album-menu-button:hover {
+  color: #d1d5db;
+}
+
+/* Menú contextual del álbum */
+.album-menu {
+  position: absolute;
+  top: 60%;
+  right: 12px;
+  background: #020617;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 0.3rem 0;
+  min-width: 130px;
+  z-index: 10;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+}
+
+.album-menu button {
+  width: 100%;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  text-align: left;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.album-menu button:hover {
+  background: #111827;
+}
+
+
+/* ========================================= */
+/* === NUEVO: Modal Eliminar Álbum ========= */
+/* ========================================= */
+
+/* Texto de advertencia */
+.modal-warning-text {
+  margin-top: 0.7rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* Contenedor de botones */
+.modal-actions {
+  margin-top: 1.4rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+/* Botón cancelar */
+.modal-btn-secondary {
+  background: transparent;
+  border: 1px solid #4b5563;
+  color: #e5e7eb;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.modal-btn-secondary:hover {
+  background: #111827;
+}
+
+/* Botón eliminar */
+.modal-btn-danger {
+  background: #22c55e;
+  color: #052e16;
+  padding: 0.45rem 1.2rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.modal-btn-danger:hover {
+  filter: brightness(1.05);
 }

@@ -5,12 +5,11 @@ from .serializers import AlbumSerializer, PhotoSerializer, PhotographerSerialize
 
 
 class AlbumViewSet(ModelViewSet):
-    queryset = Album.objects.all() 
+    queryset = Album.objects.all()
     serializer_class = AlbumSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-
         return Album.objects.filter(owner=self.request.user).order_by('-creado_en')
 
     def perform_create(self, serializer):
@@ -18,12 +17,11 @@ class AlbumViewSet(ModelViewSet):
 
 
 class PhotographerViewSet(ModelViewSet):
-    queryset = Photographer.objects.all()  
+    queryset = Photographer.objects.all()
     serializer_class = PhotographerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-
         return Photographer.objects.filter(owner=self.request.user).order_by('nombre')
 
     def perform_create(self, serializer):
@@ -31,12 +29,11 @@ class PhotographerViewSet(ModelViewSet):
 
 
 class PhotoViewSet(ModelViewSet):
-    queryset = Photo.objects.all()  
+    queryset = Photo.objects.all()
     serializer_class = PhotoSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-
         return Photo.objects.filter(owner=self.request.user).order_by('position', '-creado_en')
 
     def perform_create(self, serializer):

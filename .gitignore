@@ -1,0 +1,109 @@
+# ============================================
+# PYTHON / DJANGO
+# ============================================
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+Env/
+ENV/
+
+# Archivos Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de logs / debugging
+*.log
+
+# Base de datos SQLite
+db.sqlite3
+db.sqlite3-journal
+
+# Archivos de migración (opcional)
+# Si NO quieres subir las migraciones al repo, descomenta:
+# **/migrations/
+# Pero mantenemos __init__.py:
+# !**/migrations/__init__.py
+
+# Configuración sensible
+*.env
+.env.*
+.env.local
+.env.backup
+
+# Caché de Django
+*.pot
+*.pyproj
+staticfiles/
+media/
+static/
+
+# ============================================
+# REACT / FRONT-END
+# ============================================
+
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compilados
+dist/
+build/
+
+# Archivos temporales de React/Vite
+*.local
+*.cache/
+.cache/
+.vite/
+
+# ============================================
+# VS CODE
+# ============================================
+
+.vscode/
+.history/
+cursor/
+
+# ============================================
+# SYSTEM / OS FILES
+# ============================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# ============================================
+# OTHER / UTILITIES
+# ============================================
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Compresiones
+*.zip
+*.tar.gz
+*.rar
+
+# PDF de trabajos / tareas
+*.pdf
+
+# ============================================
+# END
+# ============================================

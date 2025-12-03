@@ -1,17 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../api'
 
-export default function AlbumForm({ onAlbumCreated }) {
+export default function AlbumForm({ album = null, onAlbumCreated, onAlbumUpdated }) {
   const [titulo, setTitulo] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (album) {
+      setTitulo(album.titulo)
+      setDescripcion(album.descripcion || '')
+    }
+  }, [album])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (!titulo) {
+    if (!titulo.trim()) {
       setError('El título es obligatorio')
       return
     }
@@ -23,14 +30,26 @@ export default function AlbumForm({ onAlbumCreated }) {
 
     try {
       setLoading(true)
-      const res = await api.post('albums/', payload)
-      onAlbumCreated(res.data)
-      setTitulo('')
-      setDescripcion('')
-      setError('')
+
+      if (album) {
+        // === EDITAR ÁLBUM ===
+        const res = await api.patch(`albums/${album.id}/`, payload)
+        if (onAlbumUpdated) onAlbumUpdated(res.data)
+      } else {
+        // === CREAR ÁLBUM ===
+        const res = await api.post('albums/', payload)
+        if (onAlbumCreated) onAlbumCreated(res.data)
+        setTitulo('')
+        setDescripcion('')
+      }
+
     } catch (err) {
-      console.error('Error creando álbum', err.response || err)
-      setError('No se pudo crear el álbum.')
+      console.error('Error guardando álbum', err.response || err)
+      if (err?.response?.data?.detail) {
+        setError(err.response.data.detail)
+      } else {
+        setError('No se pudo guardar el álbum.')
+      }
     } finally {
       setLoading(false)
     }
@@ -59,7 +78,11 @@ export default function AlbumForm({ onAlbumCreated }) {
       </label>
 
       <button type="submit" disabled={loading}>
-        {loading ? 'Guardando...' : 'Crear álbum'}
+        {loading
+          ? 'Guardando...'
+          : album
+            ? 'Guardar cambios'
+            : 'Crear álbum'}
       </button>
     </form>
   )
