@@ -3,4 +3,4 @@ Solo se necesitan instalar estas aplicación:
 - django-cors-headers
 
 La base de datos está definida como la SQLLITE, subí el archivo igual para que ya venga con algunos datos (guiño, guiño) 
-PD: Esto es una malísima práctica 
+PD: Esto es una malísima práctica <- es 'todo lo que está bien'>

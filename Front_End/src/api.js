@@ -14,3 +14,38 @@ export function setAuthToken(token) {
     delete api.defaults.headers.common['Authorization']
   }
 }
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (refreshToken) {
+        try {
+          const res = await api.post('token/refresh/',  {
+            refresh : refreshToken
+          
+          });
+          
+          const {access} = res.data;
+
+          localStorage.setItem('token', access);
+          setAuthToken(access);
+
+          console.log('Token refrescado')
+          
+          originalRequest.headers.Authorization = `Bearer ${access}`;
+          return api(originalRequest);
+
+        }catch (refreshError) {
+          console.log('Refresh token, fallido, logging out');
+        }
+      }
+    }
+    return Promise.reject(error)
+  }
+);
