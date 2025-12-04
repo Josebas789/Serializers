@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { api } from '../api'
 import { toast } from 'sonner'
 import { useAuth } from '../context/AuthContext'
-import { Plus, Image as ImageIcon, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { Plus, Image as ImageIcon, ChevronLeft, ChevronRight, LogOut, Search, Settings, UserPlus, X } from 'lucide-react'
 import PhotoCard from './PhotoCard'
 import PhotoForm from './PhotoForm'
 import AlbumFilter from './AlbumFilter'
@@ -10,6 +10,7 @@ import AlbumForm from './AlbumForm'
 import ConfirmationModal from './ConfirmationModal'
 import PhotoEditForm from './PhotoEditForm'
 import PhotographerForm from './PhotographerForm'
+import PhotographerManager from './PhotographerManager'
 
 export default function PhotoGallery() {
   const { logout } = useAuth()
@@ -36,11 +37,25 @@ export default function PhotoGallery() {
   // Estado para Drag & Drop
   const [draggedPhotoId, setDraggedPhotoId] = useState(null)
 
+  const [searchQuery, setSearchQuery] = useState('') // <--- NUEVO
+  const [showPhotographerManager, setShowPhotographerManager] = useState(false) // <--- NUEVO
+  const [albumToDelete, setAlbumToDelete] = useState(null) // <--- NUEVO (Para borrar álbumes)
+
   // --- CARGA DE DATOS ---
   const loadPhotos = useCallback(async (url = 'photos/') => {
     setLoading(true)
     try {
-      const res = await api.get(url)
+      
+      let finalUrl = url
+      if (searchQuery && url === 'photos/') {
+         finalUrl = `photos/?search=${encodeURIComponent(searchQuery)}`
+      } 
+      // Si estamos filtrando por álbum, agregamos search también
+      else if (searchQuery && url.includes('album=')) {
+         finalUrl += `&search=${encodeURIComponent(searchQuery)}`
+      }
+
+      const res = await api.get(finalUrl)
       const data = res.data
       
       if (data.results) {
@@ -126,6 +141,19 @@ export default function PhotoGallery() {
   }
 
   // --- HANDLERS OTROS ---
+  const handleSearch = (e) => {
+    e.preventDefault()
+    // Al buscar, reseteamos álbum y paginación
+    setCurrentAlbumId(null)
+    const url = `photos/?search=${encodeURIComponent(searchQuery)}`
+    loadPhotos(url)
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery('') // Limpia el estado del texto
+    loadPhotos()       // Recarga todas las fotos (sin filtros)
+  }
+
   const handleFilterByAlbum = (albumId) => {
     setCurrentAlbumId(albumId)
     const url = albumId ? `photos/?album=${albumId}` : 'photos/'
@@ -155,6 +183,23 @@ export default function PhotoGallery() {
     }
   }
 
+  const handleDeleteAlbum = async () => {
+    if (!albumToDelete) return
+    try {
+      await api.delete(`albums/${albumToDelete.id}/`)
+      setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id))
+      // Si estábamos viendo ese álbum, volver a "Todos"
+      if (currentAlbumId === albumToDelete.id) {
+          handleFilterByAlbum(null)
+      }
+      toast.success('Álbum eliminado')
+    } catch (err) {
+      toast.error('No se pudo eliminar el álbum')
+    } finally {
+      setAlbumToDelete(null)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-80px)]">
       
@@ -169,14 +214,48 @@ export default function PhotoGallery() {
           </p>
         </div>
         
+        {/* BARRA DE BÚSQUEDA */}
+        <form onSubmit={handleSearch} className="relative w-full md:w-64 order-last md:order-none">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+           
+           <input 
+             type="text" 
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             placeholder="Buscar fotos..."
+             // Nota el cambio: pr-10 (padding right) para dejar espacio a la X
+             className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-full pl-10 pr-10 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+           />
+
+           {/* Botón X que aparece solo si hay texto */}
+           {searchQuery && (
+             <button
+               type="button"
+               onClick={handleClearSearch}
+               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white bg-slate-700/50 rounded-full p-0.5 transition-colors"
+               title="Limpiar búsqueda"
+             >
+               <X size={14} />
+             </button>
+           )}
+        </form>
+
         <div className="flex flex-wrap gap-3 items-center">
-          {/* Botón Añadir Fotógrafo */}
           <button 
-            onClick={() => setShowPhotographerModal(true)}
-            className="text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors px-2 py-1"
-          >
-            <Plus size={14} /> Añadir Fotógrafo
-          </button>
+             onClick={() => setShowPhotographerModal(true)}
+             className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors px-2 py-1 hover:bg-slate-800 rounded-lg"
+             title="Crear nuevo fotógrafo"
+           >
+             <UserPlus size={16} /> <span className="hidden sm:inline">Nuevo</span>
+           </button>
+
+           {/* Botón Gestionar Fotógrafos (Reemplaza al "Añadir" simple anterior) */}
+           <button 
+             onClick={() => setShowPhotographerManager(true)}
+             className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors px-2 py-1 bg-slate-800/50 rounded-lg border border-slate-700"
+           >
+             <Settings size={14} /> Fotógrafos
+           </button>
 
           {/* Botón Nueva Foto */}
           <button 
@@ -197,7 +276,7 @@ export default function PhotoGallery() {
         </div>
       </div>
 
-      <AlbumFilter albums={albums} selectedAlbumId={currentAlbumId} onSelectAlbum={handleFilterByAlbum} onNewAlbum={() => setShowAlbumModal(true)} />
+      <AlbumFilter albums={albums} selectedAlbumId={currentAlbumId} onSelectAlbum={handleFilterByAlbum} onNewAlbum={() => setShowAlbumModal(true)} onDeleteAlbum={(album) => setAlbumToDelete(album)} />
 
       {/* GRID */}
       {loading ? (
@@ -314,6 +393,21 @@ export default function PhotoGallery() {
            </div>
         </div>
       )}
+
+      {/* MODAL GESTOR FOTÓGRAFOS */}
+    {showPhotographerManager && (
+       <PhotographerManager onClose={() => setShowPhotographerManager(false)} />
+    )}
+
+    {/* MODAL CONFIRMACIÓN ÁLBUM */}
+    <ConfirmationModal 
+        isOpen={!!albumToDelete}
+        onClose={() => setAlbumToDelete(null)}
+        onConfirm={handleDeleteAlbum}
+        title="Eliminar Álbum"
+        message={`¿Eliminar álbum "${albumToDelete?.titulo}"? Las fotos dentro también se borrarán.`}
+        confirmText="Sí, borrar todo"
+    />
 
     </div>
   )
