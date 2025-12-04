@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../api'
 import { toast } from 'sonner'
-import { Plus, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { Plus, Image as ImageIcon, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import PhotoCard from './PhotoCard'
 import PhotoForm from './PhotoForm'
 import AlbumFilter from './AlbumFilter'
@@ -11,6 +12,7 @@ import PhotoEditForm from './PhotoEditForm'
 import PhotographerForm from './PhotographerForm'
 
 export default function PhotoGallery() {
+  const { logout } = useAuth()
   const [photos, setPhotos] = useState([])
   const [albums, setAlbums] = useState([])
   const [loading, setLoading] = useState(true)
@@ -156,26 +158,43 @@ export default function PhotoGallery() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-80px)]">
       
-      {/* HEADER y FILTROS (Igual que antes) */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+      {/* HEADER y FILTROS */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Mi Galería</h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-slate-400 mt-1 text-sm">
             {currentAlbumId 
               ? `Viendo álbum: ${albums.find(a => a.id === currentAlbumId)?.titulo || '...'}`
               : 'Todas las fotos recientes'}
           </p>
         </div>
-        <button onClick={() => setShowPhotoModal(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95">
-          <Plus size={18} /> Nueva Foto
-        </button>
         
-        <button 
-          onClick={() => setShowPhotographerModal(true)}
-          className="text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
-        >
-          <Plus size={14} /> Añadir Fotógrafo
-        </button>
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Botón Añadir Fotógrafo */}
+          <button 
+            onClick={() => setShowPhotographerModal(true)}
+            className="text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors px-2 py-1"
+          >
+            <Plus size={14} /> Añadir Fotógrafo
+          </button>
+
+          {/* Botón Nueva Foto */}
+          <button 
+            onClick={() => setShowPhotoModal(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95"
+          >
+            <Plus size={18} /> Nueva Foto
+          </button>
+
+          {/* === BOTÓN CERRAR SESIÓN === */}
+          <button 
+            onClick={logout}
+            className="ml-2 p-2 text-slate-400 hover:text-red-400 hover:bg-red-900/10 rounded-full transition-all"
+            title="Cerrar Sesión"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
 
       <AlbumFilter albums={albums} selectedAlbumId={currentAlbumId} onSelectAlbum={handleFilterByAlbum} onNewAlbum={() => setShowAlbumModal(true)} />
