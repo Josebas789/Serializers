@@ -1,127 +1,94 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { api } from '../api'
+import { toast } from 'sonner'
+import { Plus, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import PhotoCard from './PhotoCard'
 import PhotoForm from './PhotoForm'
+import AlbumFilter from './AlbumFilter'
 import AlbumForm from './AlbumForm'
+import ConfirmationModal from './ConfirmationModal'
 import PhotoEditForm from './PhotoEditForm'
-import PhotoDeleteForm from './PhotoDeleteForm'
-// import './PhotoGallery.css'
 import PhotographerForm from './PhotographerForm'
-
-const MAX_ALBUMS = 4
 
 export default function PhotoGallery() {
   const [photos, setPhotos] = useState([])
   const [albums, setAlbums] = useState([])
+  const [loading, setLoading] = useState(true)
   const [flippedId, setFlippedId] = useState(null)
+  
+  // Estados de Paginación y Filtro
+  const [nextPage, setNextPage] = useState(null)
+  const [prevPage, setPrevPage] = useState(null)
+  const [currentAlbumId, setCurrentAlbumId] = useState(null)
+
+  // Modales
   const [showPhotoModal, setShowPhotoModal] = useState(false)
   const [showAlbumModal, setShowAlbumModal] = useState(false)
+  const [photoToDelete, setPhotoToDelete] = useState(null) // <--- Estado para el modal de borrar
+
   const [showPhotographerModal, setShowPhotographerModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  
   const [photoToEdit, setPhotoToEdit] = useState(null)
-  const [photoToDelete, setPhotoToDelete] = useState(null)
-  const [selectedAlbumId, setSelectedAlbumId] = useState(null)
-  const [menuPhotoId, setMenuPhotoId] = useState(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  // Estado para Drag & Drop
   const [draggedPhotoId, setDraggedPhotoId] = useState(null)
 
-  // Menús y acciones de álbum
-  const [albumMenuId, setAlbumMenuId] = useState(null)
-  const [albumToEdit, setAlbumToEdit] = useState(null)
-  const [albumToDelete, setAlbumToDelete] = useState(null)
-  const [showEditAlbumModal, setShowEditAlbumModal] = useState(false)
-  const [showDeleteAlbumModal, setShowDeleteAlbumModal] = useState(false)
-
-  const loadPhotos = async () => {
+  // --- CARGA DE DATOS ---
+  const loadPhotos = useCallback(async (url = 'photos/') => {
+    setLoading(true)
     try {
-      const res = await api.get('photos/')
-      setPhotos(res.data)
+      const res = await api.get(url)
+      const data = res.data
+      
+      if (data.results) {
+        // Ordenamos por 'position' para asegurar consistencia visual
+        const sorted = data.results.sort((a, b) => a.position - b.position)
+        setPhotos(sorted)
+        setNextPage(data.next)
+        setPrevPage(data.previous)
+      } else {
+        setPhotos(data)
+      }
     } catch (err) {
-      console.error('Error cargando fotos', err)
+      console.error(err)
+      if (err.response?.status !== 401) toast.error('Error cargando fotos')
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
   const loadAlbums = async () => {
     try {
       const res = await api.get('albums/')
-      setAlbums(res.data)
+      setAlbums(res.data.results || res.data)
     } catch (err) {
-      console.error('Error cargando álbumes', err)
+      console.error(err)
     }
   }
 
   useEffect(() => {
     loadPhotos()
     loadAlbums()
-  }, [])
+  }, [loadPhotos])
 
-  const handleFlip = (id) => {
-    setFlippedId(prev => (prev === id ? null : id))
-    setMenuPhotoId(null)
-  }
-
-  const handlePhotoCreated = (newPhoto) => {
-    setPhotos(prev => [newPhoto, ...prev])
-    setShowPhotoModal(false)
-  }
-
-  const handleAlbumCreated = (album) => {
-    setAlbums(prev => [...prev, album])
-    setShowAlbumModal(false)
-  }
-
-  const handleAlbumClick = (albumId) => {
-    setSelectedAlbumId(prev => (prev === albumId ? null : albumId))
-    setAlbumMenuId(null)
-  }
-
-  const clearFilter = () => {
-    setSelectedAlbumId(null)
-  }
-
-  const toggleMenu = (photoId, e) => {
-    e.stopPropagation()
-    setMenuPhotoId(prev => (prev === photoId ? null : photoId))
-  }
-
-  const handleDeletePhoto = async (photoId, e) => {
-    e.stopPropagation()
-    setPhotoToDelete(photoId)
-    setShowConfirmDelete(true)
-  }
-
-  const handlePhotoDeleted = (deletedPhotoId) => {
-    setPhotos(prev => prev.filter(p => p.id !== deletedPhotoId))
-    setPhotoToDelete(null)
-    setShowConfirmDelete(false)
-  }
-
-  const handleEditPhoto = (photo, e) => {
-    e.stopPropagation()
-    setPhotoToEdit(photo)
-    setShowEditModal(true)
-    setMenuPhotoId(null)
-  }
-
-  const handlePhotoUpdated = (updatedPhoto) => {
-    setPhotos(prev =>
-      prev.map(p => (p.id === updatedPhoto.id ? updatedPhoto : p))
-    )
-    setShowEditModal(false)
-    setPhotoToEdit(null)
-  }
-
-  // Drag & Drop
-  const handleDragStart = (photoId) => {
+  // --- HANDLERS DRAG & DROP ---
+  const handleDragStart = (e, photoId) => {
     setDraggedPhotoId(photoId)
+    // Efecto visual opcional en el elemento arrastrado
+    e.dataTransfer.effectAllowed = "move"
   }
 
   const handleDragOver = (e) => {
-    e.preventDefault()
+    e.preventDefault() // Necesario para permitir el drop
+    e.dataTransfer.dropEffect = "move"
   }
 
-  const handleDrop = async (targetPhotoId) => {
+  const handleDrop = async (e, targetPhotoId) => {
+    e.preventDefault()
     if (!draggedPhotoId || draggedPhotoId === targetPhotoId) return
 
+    // 1. Reordenar localmente (Optimistic UI)
     const currentPhotos = [...photos]
     const fromIndex = currentPhotos.findIndex(p => p.id === draggedPhotoId)
     const toIndex = currentPhotos.findIndex(p => p.id === targetPhotoId)
@@ -131,6 +98,7 @@ export default function PhotoGallery() {
     const [moved] = currentPhotos.splice(fromIndex, 1)
     currentPhotos.splice(toIndex, 0, moved)
 
+    // Reasignar posiciones visuales (0, 1, 2...)
     const updated = currentPhotos.map((p, index) => ({
       ...p,
       position: index
@@ -139,381 +107,194 @@ export default function PhotoGallery() {
     setPhotos(updated)
     setDraggedPhotoId(null)
 
+    // 2. Persistir en Backend
     try {
-      await Promise.all(
-        updated.map(p =>
-          api.patch(`photos/${p.id}/`, { position: p.position })
+        // Enviamos las actualizaciones en paralelo
+        await Promise.all(
+            updated.map(p => 
+                api.patch(`photos/${p.id}/`, { position: p.position })
+            )
         )
-      )
+        // Opcional: toast.success('Orden actualizado')
     } catch (err) {
-      console.error('Error actualizando posiciones', err.response || err)
-      alert('No se pudo guardar el nuevo orden.')
+        console.error('Error guardando orden', err)
+        toast.error('Error al guardar el nuevo orden')
+        loadPhotos() // Revertir si falla
     }
   }
 
-  const displayedPhotos = selectedAlbumId
-    ? photos.filter(photo => photo.album === selectedAlbumId)
-    : photos
-
-  const canCreateAlbum = albums.length < MAX_ALBUMS
-
-  // CLICK GLOBAL PARA CERRAR MENÚS
-  const handlePageClick = () => {
-    setAlbumMenuId(null)
-    setMenuPhotoId(null)
+  // --- HANDLERS OTROS ---
+  const handleFilterByAlbum = (albumId) => {
+    setCurrentAlbumId(albumId)
+    const url = albumId ? `photos/?album=${albumId}` : 'photos/'
+    loadPhotos(url)
   }
 
-  // --- Menú álbum ---
-  const toggleAlbumMenu = (albumId, e) => {
-    e.stopPropagation()
-    setAlbumMenuId(prev => (prev === albumId ? null : albumId))
+  const handlePageChange = (url) => { if (url) loadPhotos(url) }
+
+  const handleFlip = (id) => { setFlippedId(prev => (prev === id ? null : id)) }
+
+  // Abre el modal de confirmación
+  const handleDeleteClick = (photo) => {
+    setPhotoToDelete(photo)
   }
 
-  const handleEditAlbum = (album, e) => {
-    e.stopPropagation()
-    setAlbumToEdit(album)
-    setShowEditAlbumModal(true)
-    setAlbumMenuId(null)
-  }
-
-  const handleDeleteAlbum = (album, e) => {
-    e.stopPropagation()
-    setAlbumToDelete(album)
-    setShowDeleteAlbumModal(true)
-    setAlbumMenuId(null)
-  }
-
-  const confirmDeleteAlbum = async () => {
+  // Ejecuta el borrado real
+  const confirmDelete = async () => {
+    if (!photoToDelete) return
     try {
-      await api.delete(`albums/${albumToDelete.id}/`)
-      setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id))
-      setShowDeleteAlbumModal(false)
-      setAlbumToDelete(null)
+      await api.delete(`photos/${photoToDelete.id}/`)
+      loadPhotos(currentAlbumId ? `photos/?album=${currentAlbumId}` : 'photos/')
+      toast.success('Foto eliminada correctamente')
     } catch (err) {
-      console.error('Error al eliminar álbum', err)
-      alert('No se pudo eliminar el álbum.')
+      toast.error('No se pudo eliminar la foto')
+    } finally {
+      setPhotoToDelete(null)
     }
   }
 
   return (
-    <div className="gallery-page" onClick={handlePageClick}>
-
-      {/* ========================== HEADER ============================== */}
-      <div className="gallery-header">
-        <h2>Mis fotos</h2>
-
-        <div style={{ display: 'flex', gap: '0.6rem' }}>
-          <button
-            className="add-button"
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowPhotographerModal(true)
-            }}
-          >
-            + Agregar fotógrafo
-          </button>
-
-          <button
-            className="add-button"
-            type="button"
-            disabled={!canCreateAlbum}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (canCreateAlbum) setShowAlbumModal(true)
-            }}
-            style={{
-              opacity: canCreateAlbum ? 1 : 0.5,
-              cursor: canCreateAlbum ? 'pointer' : 'not-allowed'
-            }}
-          >
-            + Crear álbum
-          </button>
-
-          <button
-            className="add-button"
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowPhotoModal(true)
-            }}
-          >
-            + Agregar foto
-          </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-80px)]">
+      
+      {/* HEADER y FILTROS (Igual que antes) */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Mi Galería</h1>
+          <p className="text-slate-400 mt-1">
+            {currentAlbumId 
+              ? `Viendo álbum: ${albums.find(a => a.id === currentAlbumId)?.titulo || '...'}`
+              : 'Todas las fotos recientes'}
+          </p>
         </div>
+        <button onClick={() => setShowPhotoModal(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95">
+          <Plus size={18} /> Nueva Foto
+        </button>
+        
+        <button 
+          onClick={() => setShowPhotographerModal(true)}
+          className="text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
+        >
+          <Plus size={14} /> Añadir Fotógrafo
+        </button>
       </div>
 
-      {/* ========================== ÁLBUMES ============================== */}
-      <div className="albums-bar" onClick={(e) => e.stopPropagation()}>
-        <div className="albums-filter-label">Filtrar por álbum:</div>
+      <AlbumFilter albums={albums} selectedAlbumId={currentAlbumId} onSelectAlbum={handleFilterByAlbum} onNewAlbum={() => setShowAlbumModal(true)} />
 
-        <div className="albums-list">
-
-          {/* Chip TODOS */}
-          <div
-            className={`album-card small-card ${selectedAlbumId === null ? 'active' : ''}`}
-            onClick={() => handleAlbumClick(null)}
-          >
-            <div className="album-icon">⭐</div>
-            <div className="album-info">
-              <h3>Todos</h3>
-              <p>Ver todas las fotos</p>
-              <span className="album-count">
-                {photos.length} fotos
-              </span>
-            </div>
-          </div>
-
-          {/* Álbumes usuario */}
-          {albums.map(album => {
-            const count = photos.filter(p => p.album === album.id).length
-            const isActive = selectedAlbumId === album.id
-
-            return (
-              <div
-                key={album.id}
-                className={`album-card ${isActive ? 'active' : ''}`}
-                onClick={() => handleAlbumClick(album.id)}
-              >
-                {/* Botón ⋮ */}
-                <button
-                  type="button"
-                  className="album-menu-button"
-                  onClick={(e) => toggleAlbumMenu(album.id, e)}
-                >
-                  ⋮
-                </button>
-
-                {/* Menú contextual */}
-                {albumMenuId === album.id && (
-                  <div
-                    className="album-menu"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button onClick={(e) => handleEditAlbum(album, e)}>
-                      Editar
-                    </button>
-                    <button onClick={(e) => handleDeleteAlbum(album, e)}>
-                      Eliminar
-                    </button>
-                  </div>
-                )}
-
-                <div className="album-icon">📁</div>
-                <div className="album-info">
-                  <h3>{album.titulo}</h3>
-                  <p>{album.descripcion || 'Sin descripción'}</p>
-                  <span className="album-count">
-                    {count} {count === 1 ? 'foto' : 'fotos'}
-                  </span>
-                </div>
+      {/* GRID */}
+      {loading ? (
+        <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div></div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[200px]">
+            {photos.length > 0 ? (
+              photos.map(photo => (
+                <PhotoCard 
+                  key={photo.id} 
+                  photo={photo} 
+                  isFlipped={flippedId === photo.id}
+                  onFlip={() => handleFlip(photo.id)}
+                  onEdit={() => {
+                    setPhotoToEdit(photo)
+                    setShowEditModal(true)
+                  }}
+                  onDelete={() => handleDeleteClick(photo)} // <--- Abre el Modal
+                  
+                  // Pasamos los handlers de arrastre
+                  dragHandlers={{ onDragStart: handleDragStart, onDragOver: handleDragOver, onDrop: handleDrop }}
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-500 bg-slate-800/30 rounded-2xl border-2 border-dashed border-slate-700">
+                <ImageIcon className="h-16 w-16 mb-4 opacity-40" />
+                <p className="text-lg font-medium">No hay fotos aquí</p>
               </div>
-            )
-          })}
+            )}
+          </div>
 
-        </div>
-      </div>
+          {/* PAGINACIÓN */}
+          {(nextPage || prevPage) && (
+            <div className="flex justify-center gap-4 mt-10">
+              <button onClick={() => handlePageChange(prevPage)} disabled={!prevPage} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"><ChevronLeft size={18} /> Anterior</button>
+              <button onClick={() => handlePageChange(nextPage)} disabled={!nextPage} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors">Siguiente <ChevronRight size={18} /></button>
+            </div>
+          )}
+        </>
+      )}
 
-      {/* ========================== MODALES ============================== */}
-
-      {/* Crear Foto */}
+      {/* MODAL DE SUBIDA (Igual que antes) */}
       {showPhotoModal && (
-        <div className="modal-backdrop" onClick={() => setShowPhotoModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Nueva foto</h3>
-              <button className="close-button" onClick={() => setShowPhotoModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <PhotoForm onPhotoCreated={handlePhotoCreated} />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative animate-scale-in">
+            <button onClick={() => setShowPhotoModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">✕</button>
+            <h2 className="text-xl font-bold text-white mb-4">Subir Nueva Foto</h2>
+            <PhotoForm onPhotoCreated={(newPhoto) => {
+                if (!currentAlbumId && !prevPage) setPhotos([newPhoto, ...photos]);
+                else loadPhotos(currentAlbumId ? `photos/?album=${currentAlbumId}` : 'photos/');
+                setShowPhotoModal(false);
+                toast.success('Foto subida con éxito');
+              }} 
+            />
           </div>
         </div>
       )}
 
-      {/* Crear Fotógrafo */}
-      {showPhotographerModal && (
-        <div className="modal-backdrop" onClick={() => setShowPhotographerModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Nuevo fotógrafo</h3>
-              <button className="close-button" onClick={() => setShowPhotographerModal(false)}>✕</button>
-            </div>
-
-            <div className="modal-body">
-              <PhotographerForm
-                onPhotographerCreated={() => {}}
-                onClose={() => setShowPhotographerModal(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Crear Álbum */}
+      {/* MODAL ÁLBUM */}
       {showAlbumModal && (
-        <div className="modal-backdrop" onClick={() => setShowAlbumModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Nuevo álbum</h3>
-              <button className="close-button" onClick={() => setShowAlbumModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <AlbumForm onAlbumCreated={handleAlbumCreated} />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+           <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
+              <button onClick={() => setShowAlbumModal(false)} className="absolute top-4 right-4 text-slate-400">✕</button>
+              <h2 className="text-xl font-bold text-white mb-4">Crear Álbum</h2>
+              <AlbumForm onAlbumCreated={(newAlbum) => { setAlbums([...albums, newAlbum]); setShowAlbumModal(false); toast.success('Álbum creado'); }} />
+           </div>
+        </div>
+      )}
+
+      {/* NUEVO MODAL DE CONFIRMACIÓN */}
+      <ConfirmationModal 
+        isOpen={!!photoToDelete}
+        onClose={() => setPhotoToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar Foto"
+        message={`¿Estás seguro que deseas eliminar "${photoToDelete?.titulo}"? Esta acción no se puede deshacer.`}
+        confirmText="Sí, Eliminar"
+      />
+
+      {/* MODAL EDITAR FOTO */}
+      {showEditModal && photoToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
+            <button onClick={() => setShowEditModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <h2 className="text-xl font-bold text-white mb-4">Editar Foto</h2>
+            <PhotoEditForm 
+              photo={photoToEdit}
+              onPhotoUpdated={(updatedPhoto) => {
+                // Actualizamos la lista localmente
+                setPhotos(prev => prev.map(p => p.id === updatedPhoto.id ? updatedPhoto : p))
+                setShowEditModal(false)
+                toast.success('Foto actualizada')
+              }}
+            />
           </div>
         </div>
       )}
 
-      {/* Editar Álbum */}
-      {showEditAlbumModal && albumToEdit && (
-        <div className="modal-backdrop" onClick={() => setShowEditAlbumModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Editar álbum</h3>
-              <button className="close-button" onClick={() => setShowEditAlbumModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <AlbumForm
-                album={albumToEdit}
-                onAlbumUpdated={(updated) => {
-                  setAlbums(prev =>
-                    prev.map(a => (a.id === updated.id ? updated : a))
-                  )
-                  setShowEditAlbumModal(false)
+      {/* MODAL FOTÓGRAFO */}
+      {showPhotographerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+           <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl p-6 relative">
+              <button onClick={() => setShowPhotographerModal(false)} className="absolute top-4 right-4 text-slate-400">✕</button>
+              <h2 className="text-xl font-bold text-white mb-4">Nuevo Fotógrafo</h2>
+              <PhotographerForm 
+                onPhotographerCreated={() => {
+                  setShowPhotographerModal(false)
+                  toast.success('Fotógrafo añadido')
+                  // Opcional: recargar formulario de fotos si fuera necesario, 
+                  // pero como se carga al montar, no es crítico inmediato.
                 }}
               />
-            </div>
-          </div>
+           </div>
         </div>
       )}
-
-      {/* Confirmar eliminar álbum */}
-      {showDeleteAlbumModal && albumToDelete && (
-        <div className="modal-backdrop" onClick={() => setShowDeleteAlbumModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>¿Seguro que desea eliminar este álbum?</h3>
-              <button className="close-button" onClick={() => setShowDeleteAlbumModal(false)}>✕</button>
-            </div>
-
-            <div className="modal-body">
-              <p>
-                ¿Seguro que deseas eliminar el álbum{' '}
-                <strong>{albumToDelete.titulo}</strong>?
-              </p>
-
-              <p className="modal-warning-text">Esta acción es irreversible.</p>
-
-              <div className="modal-actions">
-                <button
-                  className="modal-btn-secondary"
-                  onClick={() => setShowDeleteAlbumModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="modal-btn-danger"
-                  onClick={confirmDeleteAlbum}
-                >
-                  Sí, eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Editar Foto */}
-      {showEditModal && photoToEdit && (
-        <div className="modal-backdrop" onClick={() => setShowEditModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Editar foto</h3>
-              <button className="close-button" onClick={() => setShowEditModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <PhotoEditForm
-                photo={photoToEdit}
-                onPhotoUpdated={handlePhotoUpdated}
-                onClose={() => setShowEditModal(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmar eliminar foto */}
-      {showConfirmDelete && photoToDelete && (
-        <div className="modal-backdrop" onClick={() => setShowConfirmDelete(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>¿Seguro que desea eliminar esta foto?</h3>
-              <button className="close-button" onClick={() => setShowConfirmDelete(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <PhotoDeleteForm
-                photo={photoToDelete}
-                onClose={() => setShowConfirmDelete(false)}
-                onPhotoDeleted={handlePhotoDeleted}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===================== GALERÍA ======================== */}
-      <div className="gallery-wrapper" onClick={(e) => e.stopPropagation()}>
-        <div className="gallery-container">
-          {displayedPhotos.map(photo => (
-            <div
-              key={photo.id}
-              className={`photo-card size-${photo.size} ${flippedId === photo.id ? 'flipped' : ''}`}
-              onClick={() => handleFlip(photo.id)}
-              draggable
-              onDragStart={() => handleDragStart(photo.id)}
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(photo.id)}
-            >
-              <div className="card-inner">
-                {/* Frente */}
-                <div className="card-front">
-                  <img src={photo.imagen_url} alt={photo.titulo} />
-                  <div className="card-title">{photo.titulo}</div>
-                </div>
-
-                {/* Reverso */}
-                <div className="card-back">
-                  <button
-                    type="button"
-                    className="card-menu-button"
-                    onClick={(e) => toggleMenu(photo.id, e)}
-                  >
-                    ⋮
-                  </button>
-
-                  {menuPhotoId === photo.id && (
-                    <div className="card-menu" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={(e) => handleEditPhoto(photo, e)}>Editar</button>
-                      <button onClick={(e) => handleDeletePhoto(photo.id, e)}>Eliminar</button>
-                    </div>
-                  )}
-
-                  <h3>{photo.titulo}</h3>
-                  <p>{photo.descripcion || 'Sin descripción'}</p>
-                  <p><strong>Álbum:</strong> {photo.album_nombre}</p>
-                  <p><strong>Fotógrafo:</strong> {photo.photographer_nombre}</p>
-                  {photo.destacado && <span className="badge">Destacado</span>}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {displayedPhotos.length === 0 && (
-          <p className="empty-msg">No hay fotos para mostrar.</p>
-        )}
-      </div>
 
     </div>
   )

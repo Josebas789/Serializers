@@ -1,54 +1,32 @@
-import { useEffect, useState } from 'react'
+import { Toaster } from 'sonner' // Notificaciones Toast
+import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import PhotoGallery from './components/PhotoGallery'
-import { setAuthToken } from './api'
-import './index.css'
 
-function App() {
-  const [token, setToken] = useState(null)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('token')
-    if (saved) {
-      setToken(saved)
-      setAuthToken(saved)
-    }
-  }, [])
-
-  const handleLogin = (newToken) => {
-    setToken(newToken)
-  }
-
-  const handleLogout = () => {
-    setToken(null)
-    setAuthToken(null)
-    localStorage.removeItem('token')
-  }
+// Componente interno para manejar la lógica de vista
+function AppContent() {
+  const { isAuthenticated } = useAuth()
 
   return (
-    <div>
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          padding: '1rem 1.5rem',
-          borderBottom: '1px solid #1f2937',
-        }}
-      >
-        <h1>Galería Fotográfica</h1>
-        {token && (
-          <button onClick={handleLogout}>
-            Cerrar sesión
-          </button>
-        )}
-      </header>
+    <div className="min-h-screen bg-slate-900 text-slate-50 font-sans selection:bg-indigo-500/30">
+      {/* Sistema de notificaciones (Toast) */}
+      <Toaster position="top-right" richColors theme="dark" />
 
-      {!token ? (
-        <Login onLogin={handleLogin} />
-      ) : (
+      {isAuthenticated ? (
         <PhotoGallery />
+      ) : (
+        <Login />
       )}
     </div>
+  )
+}
+
+// Componente principal que provee el contexto
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 
