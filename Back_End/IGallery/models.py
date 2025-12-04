@@ -29,7 +29,8 @@ class Photo(models.Model):
     
 
     titulo = models.CharField(max_length=200)
-    imagen_url = models.URLField()
+    imagen_url = models.URLField(blank=True, null=True) 
+    imagen_file = models.ImageField(upload_to='photos/', blank=True, null=True)
     descripcion = models.TextField(blank=True)
     size = models.CharField(max_length=1, choices=SIZE_CHOICES, default='M')
     album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='photos')

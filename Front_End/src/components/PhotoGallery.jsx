@@ -4,7 +4,7 @@ import PhotoForm from './PhotoForm'
 import AlbumForm from './AlbumForm'
 import PhotoEditForm from './PhotoEditForm'
 import PhotoDeleteForm from './PhotoDeleteForm'
-import './PhotoGallery.css'
+// import './PhotoGallery.css'
 import PhotographerForm from './PhotographerForm'
 
 const MAX_ALBUMS = 4

@@ -1,5 +1,7 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Album, Photo, Photographer
 from .serializers import AlbumSerializer, PhotoSerializer, PhotographerSerializer
 
@@ -32,6 +34,11 @@ class PhotoViewSet(ModelViewSet):
     queryset = Photo.objects.all()
     serializer_class = PhotoSerializer
     permission_classes = [IsAuthenticated]
+    
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['album', 'photographer', 'destacado', 'size']
+    search_fields = ['titulo', 'descripcion']
+    ordering_fields = ['creado_en', 'position']
 
     def get_queryset(self):
         return Photo.objects.filter(owner=self.request.user).order_by('position', '-creado_en')
